@@ -1,4 +1,6 @@
 using Api.Middlewares;
+using Api.Services;
+using Api.Services.Interfaces;
 using Api.UseCases.Users;
 using Api.UseCases.Users.Interfaces;
 using Dal;
@@ -39,7 +41,17 @@ public sealed class Startup
         services.AddLogic();
         
         services.AddScoped<IManageUserUseCase, ManageUserUseCase>();
+
         
+        services.AddTransient<ITransientService1, TransientService1>();
+        services.AddTransient<ITransientService2, TransientService2>();
+
+        services.AddScoped<IScopedService1, ScopedService1>();
+        services.AddScoped<IScopedService2, ScopedService2>();
+
+        services.AddSingleton<ISingletonService1, SingletonService1>();
+        services.AddSingleton<ISingletonService2, SingletonService2>();
+
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(builder =>
