@@ -1,11 +1,15 @@
-﻿using Api.Controllers.Tasks.Request;
+﻿using Api.Binders.Tasks;
+using Api.Controllers.Tasks.Request;
 using Api.Controllers.Tasks.Response;
+using Api.Filters;
 using Api.UseCases.Tasks.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.Tasks;
 
 [ApiController]
+[StudentInfoHeadersFilter] 
+[TypeFilter(typeof(RequestLoggingFilter))]
 [Route("tasks")]
 public class TasksController : ControllerBase
 {
@@ -33,13 +37,11 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
+    [ValidateCreateTaskRequestFilter]
     public async Task<ActionResult<TaskResponse>> CreateTaskAsync(
         [FromBody] CreateTaskRequest? request,
         CancellationToken cancellationToken)
     {
-        var validationResult = ValidateTitleRequest(request?.Title, request);
-        if (validationResult != null) return validationResult;
-
         var task = await _createTaskUseCase.CreateTaskAsync(request!.Title, request.CreatedByUserId, cancellationToken);
         if (task == null)
         {
@@ -58,9 +60,9 @@ public class TasksController : ControllerBase
     }
 
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     public async Task<ActionResult<TaskResponse>> GetTaskByIdAsync(
-        [FromRoute] Guid id, 
+        [FromRouteTaskId] Guid id, 
         CancellationToken cancellationToken)
     {
         var taskResponse = await _getTaskUseCase.GetTaskByIdAsync(id, cancellationToken);
@@ -74,14 +76,12 @@ public class TasksController : ControllerBase
     }
 
     [HttpPut("{id:guid}/title")]
+    [ValidateSetTaskTitleRequestFilter]
     public async Task<IActionResult> SetTaskTitleAsync(
         [FromRoute] Guid id,
         [FromBody] SetTaskTitleRequest? request,
         CancellationToken cancellationToken)
     {
-        var validationResult = ValidateTitleRequest(request?.Title, request);
-        if (validationResult != null) return validationResult;
-        
         bool isUpdated = await _setTaskTitleUseCase.SetTaskTitleAsync(id, request.Title, cancellationToken);
 
         if (isUpdated)
@@ -110,12 +110,5 @@ public class TasksController : ControllerBase
     {
         await _deleteTasksUseCase.DeleteAllTasksAsync(cancellationToken);
         return NoContent();
-    }
-
-    private ActionResult? ValidateTitleRequest(string? title, object? request)
-    {
-        if (request is null) return BadRequest("Пустое тело запроса.");
-        if (string.IsNullOrWhiteSpace(title)) return BadRequest("Название не задано.");
-        return null;
     }
 }
